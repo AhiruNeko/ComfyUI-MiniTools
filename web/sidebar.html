@@ -12,13 +12,18 @@
         <div class="collapsible-section">
             <div class="section-header">
                 <span class="arrow">▼</span>
-                <span class="section-title">角色提示词查询</span>
+                <span class="section-title">角色查询</span>
             </div>
             <div class="section-body">
+                <div class="search-settings">
+                    <input type="text" id="search-src-input" autocomplete="off" placeholder="搜索源路径">
+                    <button id="choose-src-btn" class="button">选择搜索源</button>
+                    <input type="file" id="hidden-file-input" accept=".xlsx, .xls, .csv" style="display: none;">
+                </div>
                 <div class="search-input-group">
-                    <input type="text" id="role-search-input" placeholder="输入角色名或作品..." autocomplete="off">
-                    <button id="role-search-btn">搜索</button>
-                    <button id="moegirl-search-btn">百科</button>
+                    <input type="text" id="character-search-input" placeholder="输入角色名或作品..." autocomplete="off">
+                    <button id="character-search-btn" class="button">搜索</button>
+                    <button id="moegirl-search-btn" class="button">百科</button>
                 </div>
             </div>
         </div>

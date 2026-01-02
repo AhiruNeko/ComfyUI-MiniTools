@@ -159,7 +159,7 @@
     margin-bottom: 10px;
 }
 
-#role-search-input {
+#character-search-input {
     flex: 1;
     background: #111;
     border: 1px solid #444;
@@ -170,6 +170,34 @@
     outline: none;
 }
 
-#role-search-input:focus {
+.search-settings {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+#search-src-input {
+    flex: 1;
+    background: #111;
+    border: 1px solid #444;
+    color: #eee;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    outline: none;
+}
+
+#character-search-input:focus {
     border-color: #8fcbf2;
+}
+
+.button {
+    border: 1px solid #5e5e5e;
+    color: white;
+    background: #2a2a2a;
+    border-radius: 4px;
+}
+
+.button:hover {
+    background: #353535;
 }
