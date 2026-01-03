@@ -74,7 +74,8 @@ def search_character(file_path, query, request_id):
 
         results_with_score = []
         sub_str = []
-        for i in range(2, len(query) + 1):
+        min_sub_len = 2 if len(query) > 2 else 1
+        for i in range(min_sub_len, len(query) + 1):
             for j in range(0, len(query) - i + 1):
                 if not (query[j:j + i] in sub_str):
                     sub_str.append(query[j:j + i])
@@ -95,7 +96,7 @@ def search_character(file_path, query, request_id):
                     return {"canceled": True}
                 val_lower = value.lower()
                 score = match_score(val_lower, sub_str)
-                if score > 60:
+                if score > 0:
                     match_found = True
                     max_row_score = max(max_row_score, score)
             if match_found:
@@ -108,7 +109,7 @@ def search_character(file_path, query, request_id):
             result_element["score"] = min(100, result_element["score"] + (int(result_element["data"]["count"]) + int(result_element["data"]["solo_count"])) / max_count * 15)
         cancel_flags.pop(request_id, None)
         sorted_results = sorted(results_with_score, key=lambda x: x['score'], reverse=True)
-        return [item['data'] for item in sorted_results]
+        return [item['data'] for item in sorted_results[:1000]]
 
     except Exception as e:
         return {"error": f"Search error: {str(e)}"}
