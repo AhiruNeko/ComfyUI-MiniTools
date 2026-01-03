@@ -1,4 +1,5 @@
 import { app } from "../../scripts/app.js";
+import { characterSearch } from "./characterSearch.js";
 
 app.registerExtension({
     name: "ComfyUI.MiniTools.Linked",
@@ -83,29 +84,7 @@ app.registerExtension({
             closeBtn.onclick = () => sidebar.classList.add("minitools-hidden");
         }
 
-        const moegirlSearchBtn = document.getElementById("moegirl-search-btn");
-        const characterSearchInput = document.getElementById("character-search-input")
-        const moegirlUrl = "https://moegirl.org"
-        moegirlSearchBtn.addEventListener("click", () => {
-            window.open(moegirlUrl + "/" + characterSearchInput.value, '_blank');
-        });
-
-        const textInput = document.getElementById('search-src-input');
-        const chooseBtn = document.getElementById('choose-src-btn');
-        let currentExcelPath = "";
-        chooseBtn.onclick = async () => {
-            const response = await fetch('/minitools/get_local_path');
-            const data = await response.json();
-            if (data.src) {
-                currentExcelPath = data.src;
-                textInput.value = currentExcelPath;
-            }
-        };
-        const response = await fetch('/minitools/get_init_config');
-        const data = await response.json();
-        if (data.src) {
-            currentExcelPath = data.src;
-            textInput.value = currentExcelPath;
-        }
+        await characterSearch()
     }
 });
+

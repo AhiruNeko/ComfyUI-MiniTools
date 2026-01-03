@@ -1,9 +1,21 @@
 import os
 import server
 from aiohttp import web
-import tkinter as tk
-from tkinter import filedialog
+import asyncio
 import json
+from character_search import search_character, cancel_flags
+import win32gui, win32con
+import ctypes
+import uuid
+
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(2)
+except Exception as e:
+    print(e)
+    try:
+        ctypes.windll.user32.SetProcessDPIAware()
+    except Exception as e:
+        print(e)
 
 EXTENSION_PATH = os.path.dirname(os.path.realpath(__file__))
 ASSETS_PATH = os.path.join(EXTENSION_PATH, "assets")
@@ -32,16 +44,26 @@ async def get_init_config(request):
         "src": default_path
     })
 
+
+def ask_open_file_native():
+    title = "选择搜索源"
+    filter_str = "表格文件 (*.csv)\0*.csv\0\0"
+    try:
+        file_path, _, _ = win32gui.GetOpenFileNameW(
+            InitialDir=os.getcwd(),
+            Flags=win32con.OFN_EXPLORER | win32con.OFN_FILEMUSTEXIST | win32con.OFN_HIDEREADONLY,
+            Title=title,
+            Filter=filter_str,
+            DefExt="csv"
+        )
+        return file_path
+    except Exception as e:
+        print(e)
+        return ""
+
 @server.PromptServer.instance.routes.get("/minitools/get_local_path")
 async def get_local_path(request):
-    root = tk.Tk()
-    root.withdraw()
-    root.attributes("-topmost", True)
-    file_path = filedialog.askopenfilename(
-        title="选择搜索源",
-        filetypes=[("表格文件", "*.csv")]
-    )
-    root.destroy()
+    file_path = await asyncio.to_thread(ask_open_file_native)
     if file_path:
         try:
             with open(os.path.join(CURRENT_DIR, "assets", "characterSearchSrc", "config.json"), "r") as file:
@@ -55,3 +77,26 @@ async def get_local_path(request):
         return web.json_response({"src": os.path.abspath(file_path)})
     else:
         return web.json_response({"src": ""})
+
+@server.PromptServer.instance.routes.post("/minitools/search_handler")
+async def search_handler(request):
+    try:
+        data = await request.json()
+        query = data.get("query", "").strip()
+        search_src = data.get("src", "").strip()
+        request_id = data.get("request_id", str(uuid.uuid4()))
+        results = await asyncio.to_thread(search_character, search_src, query, request_id)
+        if isinstance(results, dict) and ("error" in results.keys()):
+            return web.json_response({"error": results["error"]})
+        if isinstance(results, dict) and results.get("canceled"):
+            return web.json_response({"canceled": "Search cancelled by user"})
+        return web.json_response({"results": results, "length": len(results)})
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)
+
+@server.PromptServer.instance.routes.post("/minitools/cancel_search")
+async def cancel_handler(request):
+    data = await request.json()
+    request_id = data.get("request_id", "default")
+    cancel_flags[request_id] = True
+    return web.json_response({"canceled": "Search cancelled by user"})

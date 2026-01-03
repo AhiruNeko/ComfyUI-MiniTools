@@ -1,5 +1,20 @@
 import pandas as pd
 import os
+import server
+
+CSV_CACHE = {}
+cancel_flags = {}
+
+def get_dataframe(file_path):
+    if file_path not in CSV_CACHE:
+        encodings = ['utf-8', 'gbk', 'gb18030', 'utf-8-sig']
+        for enc in encodings:
+            try:
+                CSV_CACHE[file_path] = pd.read_csv(file_path, encoding=enc)
+                break
+            except (UnicodeDecodeError, Exception):
+                continue
+    return CSV_CACHE[file_path]
 
 def match_score(element: str, sub_str: list[str]):
     target = sub_str[-1]
@@ -40,22 +55,18 @@ def match_score(element: str, sub_str: list[str]):
     return min(100, score)
 
 
-def search_character(file_path, query):
+def search_character(file_path, query, request_id):
+    cancel_flags[request_id] = False
     if not os.path.exists(file_path):
-        return {"error": "搜索源不存在"}
+        return {"error": "Search source does not exist"}
 
     try:
-        encodings = ['utf-8', 'gbk', 'gb18030', 'utf-8-sig']
-        for enc in encodings:
-            try:
-                df = pd.read_csv(file_path, encoding=enc)
-                break
-            except (UnicodeDecodeError, Exception):
-                continue
+        df = get_dataframe(file_path)
+        total_rows = len(df)
         required_columns = ['character', 'trigger', 'core_tags']
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
-            return {"error": f"搜索源格式不规范, 缺失列: {missing_columns}"}
+            return {"error": f"Invalid search source, missing columns: {missing_columns}"}
         df = df.astype(str).replace('nan', '')
         query = str(query).lower().strip()
         if not query:
@@ -68,11 +79,20 @@ def search_character(file_path, query):
                 if not (query[j:j + i] in sub_str):
                     sub_str.append(query[j:j + i])
 
-        for _, row in df.iterrows():
+        last_progress = -1
+        for index, row in df.iterrows():
+            current_progress = int((index / total_rows) * 100)
+            if current_progress != last_progress:
+                server.PromptServer.instance.send_sync("minitools_progress", {"value": current_progress})
+                last_progress = current_progress
+
             row_dict = row.to_dict()
             max_row_score = 0
             match_found = False
             for column, value in row_dict.items():
+                if cancel_flags.get(request_id):
+                    print("[MiniTools]Search progress " + request_id + " canceled")
+                    return {"canceled": True}
                 val_lower = value.lower()
                 score = match_score(val_lower, sub_str)
                 if score > 60:
@@ -83,9 +103,12 @@ def search_character(file_path, query):
                     "data": row_dict,
                     "score": max_row_score
                 })
-
+        max_count = max([int(i["data"]["count"]) + int(i["data"]["solo_count"]) for i in results_with_score])
+        for result_element in results_with_score:
+            result_element["score"] = min(100, result_element["score"] + (int(result_element["data"]["count"]) + int(result_element["data"]["solo_count"])) / max_count * 15)
+        cancel_flags.pop(request_id, None)
         sorted_results = sorted(results_with_score, key=lambda x: x['score'], reverse=True)
         return [item['data'] for item in sorted_results]
 
     except Exception as e:
-        return {"error": f"搜索出错: {str(e)}"}
+        return {"error": f"Search error: {str(e)}"}
