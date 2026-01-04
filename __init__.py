@@ -3,7 +3,7 @@ import server
 from aiohttp import web
 import asyncio
 import json
-from character_search import search_character, cancel_flags
+from .character_search import search_character, cancel_flags
 import win32gui, win32con
 import ctypes
 import uuid
@@ -25,7 +25,7 @@ NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
 
-print(f"Loaded ComfyUI-MiniTools from {EXTENSION_PATH}")
+print(f"[ComfyUI-MiniTools]Loaded ComfyUI-MiniTools from {EXTENSION_PATH}")
 
 CURRENT_DIR = os.path.dirname(__file__)
 DEFAULT_ASSETS_PATH = os.path.abspath(os.path.join(CURRENT_DIR, "assets", "characterSearchSrc","danbooru_character_webui.csv"))
