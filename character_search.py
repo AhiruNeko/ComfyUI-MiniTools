@@ -1,6 +1,9 @@
 import pandas as pd
 import os
 import server
+import re
+import traceback
+from .matcher import Matcher
 
 CSV_CACHE = {}
 cancel_flags = {}
@@ -16,100 +19,91 @@ def get_dataframe(file_path):
                 continue
     return CSV_CACHE[file_path]
 
-def match_score(element: str, sub_str: list[str]):
-    target = sub_str[-1]
-    sub_str = sub_str[0:len(sub_str) - 1]
-    placeholder = "\x01"
-    if target == element:
-        return 100
-    if target in element:
-        return 90 + (len(element) - element.find(target)) / len(element) * 5
-    if len(element) == 0:
-        return 0
-    score = 0
-
-    sum_sub_len = 0
-    element_len = len(element)
-    target_len = len(target)
-    can_score = False
-    for string in sub_str[::-1]:
-        if string in element:
-            sum_sub_len += len(string)
-            target = target.replace(string, placeholder)
-            if len(string) >= 5:
-                can_score = True
-                score = score + element.count(string) / (element_len / len(string)) * 10
-            element = element.replace(string, placeholder)
-    if can_score:
-        target = target.replace(placeholder, "")
-        len_reduce = (target_len - len(target)) / target_len
-        if len_reduce > 0.5:
-            score += 50 * len_reduce
-        else:
-            score -= 50 * len_reduce
-        proportion = sum_sub_len / element_len
-        if proportion > 0.4:
-            score += sum_sub_len / element_len * 40
-        else:
-            score -= sum_sub_len / element_len * 40
-    return min(100, score)
-
-
 def search_character(file_path, query, request_id):
+    matcher = Matcher(query)
     cancel_flags[request_id] = False
     if not os.path.exists(file_path):
         return {"error": "Search source does not exist"}
 
     try:
         df = get_dataframe(file_path)
+        search_cols = ['character', 'trigger', 'core_tags', 'copyright']
+        for col in search_cols:
+            if col in df.columns:
+                df[col] = df[col].fillna("").astype(str)
+
         total_rows = len(df)
         required_columns = ['character', 'trigger', 'core_tags']
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             return {"error": f"Invalid search source, missing columns: {missing_columns}"}
         df = df.astype(str).replace('nan', '')
-        query = str(query).lower().strip()
+        query = re.sub(r'\s+', ' ', query).strip()
         if not query:
             return []
 
+        all_records = df.to_dict('records')
         results_with_score = []
-        sub_str = []
-        min_sub_len = 2 if len(query) > 2 else 1
-        for i in range(min_sub_len, len(query) + 1):
-            for j in range(0, len(query) - i + 1):
-                if not (query[j:j + i] in sub_str):
-                    sub_str.append(query[j:j + i])
 
         last_progress = -1
-        for index, row in df.iterrows():
-            current_progress = int((index / total_rows) * 100)
+        for index, row in enumerate(all_records):
+            current_progress = int((index / total_rows) * 90)
             if current_progress != last_progress:
                 server.PromptServer.instance.send_sync("minitools_progress", {"value": current_progress})
                 last_progress = current_progress
 
-            row_dict = row.to_dict()
             max_row_score = 0
-            match_found = False
-            for column, value in row_dict.items():
+            for col in search_cols:
+                value = row.get(col, "")
+                if not value: continue
                 if cancel_flags.get(request_id):
                     print("[MiniTools]Search progress " + request_id + " canceled")
                     return {"canceled": True}
-                val_lower = value.lower()
-                score = match_score(val_lower, sub_str)
-                if score > 0:
-                    match_found = True
-                    max_row_score = max(max_row_score, score)
-            if match_found:
-                results_with_score.append({
-                    "data": row_dict,
-                    "score": max_row_score
-                })
-        max_count = max([int(i["data"]["count"]) + int(i["data"]["solo_count"]) for i in results_with_score])
-        for result_element in results_with_score:
-            result_element["score"] = min(100, result_element["score"] + (int(result_element["data"]["count"]) + int(result_element["data"]["solo_count"])) / max_count * 15)
+                val_lower = value.lower().strip()
+                rapid_match = matcher.rapid_match(val_lower)
+                if max_row_score < rapid_match:
+                    max_row_score = rapid_match
+            results_with_score.append({
+                "data": row,
+                "score": max_row_score
+            })
+
+        results_with_score = sorted(results_with_score, key=lambda x: x["score"], reverse=True)[:5000]
+        total_top_k = len(results_with_score)
+        for idx, item in enumerate(results_with_score):
+            current_progress = 90 + int((idx / total_top_k) * 9)
+            if current_progress != last_progress:
+                server.PromptServer.instance.send_sync("minitools_progress", {"value": current_progress})
+                last_progress = current_progress
+            if cancel_flags.get(request_id):
+                print("[MiniTools]Search progress " + request_id + " canceled")
+                return {"canceled": True}
+            best_match = {"score": 0, "match_count": 0, "first_match": 0}
+            row_dict = item["data"]
+            for col in search_cols:
+                val = row_dict.get(col, "").lower().strip()
+                if not val: continue
+                detail = matcher.match_info(val)
+                if best_match["score"] < detail["score"]:
+                    best_match = detail
+            item.update(best_match)
+
+        max_score = max([i["score"] for i in results_with_score])
+        score_threshold = max_score * 0.5
+        valid_results = [i for i in results_with_score if i["score"] >= score_threshold]
         cancel_flags.pop(request_id, None)
-        sorted_results = sorted(results_with_score, key=lambda x: x['score'], reverse=True)
+        sorted_results = sorted(
+            valid_results,
+            key=lambda x: (
+                x["score"],
+                int(x["data"]["count"]) + int(x["data"]["solo_count"]),
+                x["match_count"] + x["first_match"]
+            ),
+            reverse=True
+        )
+        server.PromptServer.instance.send_sync("minitools_progress", {"value": 100})
         return [item['data'] for item in sorted_results[:1000]]
 
     except Exception as e:
+        traceback.print_exc()
         return {"error": f"Search error: {str(e)}"}

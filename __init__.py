@@ -1,20 +1,37 @@
 import os
 import server
+import traceback
 from aiohttp import web
 import asyncio
 import json
-from .character_search import search_character, cancel_flags
 import win32gui, win32con
 import ctypes
 import uuid
+import sys
+import subprocess
+import importlib.util
+
+package_name = 'rapidfuzz'
+spec = importlib.util.find_spec(package_name)
+if spec is None:
+    print("Installing " + package_name)
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
+        print(f"{package_name} installed")
+    except Exception as e:
+        print(e)
+        print(traceback.format_exc())
+from .character_search import search_character, cancel_flags
 
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(2)
 except Exception as e:
+    print(traceback.format_exc())
     print(e)
     try:
         ctypes.windll.user32.SetProcessDPIAware()
     except Exception as e:
+        print(traceback.format_exc())
         print(e)
 
 EXTENSION_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -28,7 +45,7 @@ __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
 print(f"[ComfyUI-MiniTools]Loaded ComfyUI-MiniTools from {EXTENSION_PATH}")
 
 CURRENT_DIR = os.path.dirname(__file__)
-DEFAULT_ASSETS_PATH = os.path.abspath(os.path.join(CURRENT_DIR, "assets", "characterSearchSrc","danbooru_character_webui.csv"))
+DEFAULT_SRC_PATH = os.path.abspath(os.path.join(CURRENT_DIR, "assets", "characterSearchSrc", "danbooru_character_webui.csv"))
 
 @server.PromptServer.instance.routes.get("/minitools/get_init_config")
 async def get_init_config(request):
@@ -37,11 +54,27 @@ async def get_init_config(request):
             config = json.load(file)
             if os.path.exists(config["src"]) and os.path.isfile(config["src"]):
                 return web.json_response(config)
-    except Exception as e:
-        print(e)
-    default_path = DEFAULT_ASSETS_PATH if os.path.exists(DEFAULT_ASSETS_PATH) else ""
+    except Exception as exception:
+        print(traceback.format_exc())
+        print(exception)
+    default_path = DEFAULT_SRC_PATH if os.path.exists(DEFAULT_SRC_PATH) else ""
     return web.json_response({
         "src": default_path
+    })
+
+@server.PromptServer.instance.routes.get("/minitools/get_default_src")
+async def get_default_src(request):
+    try:
+        with open(os.path.join(CURRENT_DIR, "assets", "characterSearchSrc", "config.json"), "r") as file:
+            config = json.load(file)
+        config["src"] = DEFAULT_SRC_PATH
+        with open(os.path.join(CURRENT_DIR, "assets", "characterSearchSrc", "config.json"), "w") as file:
+            json.dump(config, file)
+    except Exception as exception:
+        print(traceback.format_exc())
+        print(exception)
+    return web.json_response({
+        "src": DEFAULT_SRC_PATH
     })
 
 
@@ -57,8 +90,8 @@ def ask_open_file_native():
             DefExt="csv"
         )
         return file_path
-    except Exception as e:
-        print(e)
+    except Exception as exception:
+        print(exception)
         return ""
 
 @server.PromptServer.instance.routes.get("/minitools/get_local_path")
@@ -71,8 +104,9 @@ async def get_local_path(request):
             config["src"] = file_path
             with open(os.path.join(CURRENT_DIR, "assets", "characterSearchSrc", "config.json"), "w") as file:
                 json.dump(config, file)
-        except Exception as e:
-            print(e)
+        except Exception as exception:
+            print(exception)
+            print(traceback.format_exc())
 
         return web.json_response({"src": os.path.abspath(file_path)})
     else:
@@ -91,8 +125,10 @@ async def search_handler(request):
         if isinstance(results, dict) and results.get("canceled"):
             return web.json_response({"canceled": "Search cancelled by user"})
         return web.json_response({"results": results, "length": len(results)})
-    except Exception as e:
-        return web.json_response({"error": str(e)}, status=500)
+    except Exception as exception:
+        print(exception)
+        print(traceback.format_exc())
+        return web.json_response({"error": str(exception)}, status=500)
 
 @server.PromptServer.instance.routes.post("/minitools/cancel_search")
 async def cancel_handler(request):

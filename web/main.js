@@ -84,6 +84,34 @@ app.registerExtension({
             closeBtn.onclick = () => sidebar.classList.add("minitools-hidden");
         }
 
+        let mousedownInside = false
+
+        document.addEventListener("mousedown", (event) => {
+            const clickInBtn = btn.contains(event.target);
+            const clickInSidebar = sidebar.contains(event.target);
+            const popoverEl = document.getElementById("info-popover");
+            let clickInPopoverEl = false;
+            if (popoverEl != null) {
+                clickInPopoverEl = popoverEl.contains(event.target);
+            }
+            mousedownInside = clickInBtn || clickInPopoverEl || clickInSidebar;
+            console.log(mousedownInside);
+        });
+
+        document.addEventListener("click", (event) => {
+            const clickInBtn = btn.contains(event.target);
+            const clickInSidebar = sidebar.contains(event.target);
+            const popoverEl = document.getElementById("info-popover");
+            let clickInPopoverEl = false;
+            if (popoverEl != null) {
+                clickInPopoverEl = popoverEl.contains(event.target);
+            }
+            if (!clickInBtn && !clickInSidebar && !clickInPopoverEl && !sidebar.classList.contains("minitools-hidden") && !mousedownInside) {
+                sidebar.classList.add("minitools-hidden")
+            }
+            mousedownInside = false
+        });
+
         await characterSearch()
     }
 });

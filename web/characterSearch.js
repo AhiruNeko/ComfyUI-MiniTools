@@ -29,6 +29,7 @@ export async function characterSearch() {
         const characterSearchBtn = document.getElementById("character-search-btn");
         let isSearching = false;
         let currentRequestId = null;
+        const searchProgress = document.getElementById("search-progress");
         characterSearchBtn.addEventListener("click", async () => {
             if (isSearching) {
                 await api.fetchApi("/minitools/cancel_search", {
@@ -39,6 +40,7 @@ export async function characterSearch() {
                 return;
             }
             isSearching = true;
+            searchProgress.textContent = "搜索进度0%"
             characterSearchBtn.innerText = "取消";
             const src = searchSrcInput.value;
             const query = characterSearchInput.value;
@@ -48,7 +50,6 @@ export async function characterSearch() {
                 body: JSON.stringify({query: query, src: src, request_id: currentRequestId}),
             });
             const data = await response.json();
-            const searchProgress = document.getElementById("search-progress");
             isSearching = false;
             if (data.length){
                 searchProgress.textContent = "搜索完成, 共" + data.length + "条结果";
@@ -68,7 +69,6 @@ export async function characterSearch() {
 
         api.addEventListener("minitools_progress", ({ detail }) => {
             const progress = detail.value;
-            const searchProgress = document.getElementById("search-progress");
 
             if (searchProgress) {
                 if (progress < 100) {
@@ -76,12 +76,23 @@ export async function characterSearch() {
                 }
             }
         });
+
+        const defaultSrcBtn = document.getElementById("default-src-btn");
+        defaultSrcBtn.addEventListener("mousedown", async () => {
+           const response = await fetch("/minitools/get_default_src");
+           const data = await response.json();
+           if (data.src) {
+               showToast("默认搜索源已加载");
+               searchSrcInput.value = data.src;
+           }
+        });
 }
 
 function renderResults(results) {
     const container = document.getElementById("results-container");
     const popoverEl = document.getElementById("info-popover");
     container.innerHTML = "";
+    let hideTimeout;
 
     results.forEach(data => {
         const itemEl = document.createElement("div");
@@ -95,7 +106,7 @@ function renderResults(results) {
         const iconEl = document.createElement("div");
         iconEl.className = "about-icon";
         iconEl.innerText = "i";
-        let hideTimeout;
+
         iconEl.addEventListener("mouseenter", (e) => {
             popoverEl.classList.add("active");
             clearTimeout(hideTimeout);
