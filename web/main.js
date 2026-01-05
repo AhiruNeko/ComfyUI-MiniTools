@@ -95,7 +95,6 @@ app.registerExtension({
                 clickInPopoverEl = popoverEl.contains(event.target);
             }
             mousedownInside = clickInBtn || clickInPopoverEl || clickInSidebar;
-            console.log(mousedownInside);
         });
 
         document.addEventListener("click", (event) => {

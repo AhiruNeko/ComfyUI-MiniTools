@@ -57,7 +57,6 @@ export async function characterSearch() {
                 searchProgress.textContent = "输入关键词进行搜索";
             }
             characterSearchBtn.innerText = "搜索";
-            console.log(data);
             if (data.error) {
                 alert("Search error: " + data.error);
                 return;
