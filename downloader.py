@@ -178,19 +178,3 @@ class Downloader:
             thread.start()
             return True
         return False
-
-if __name__ == "__main__":
-    obj = Downloader(
-        "https://huggingface.co/Qwen/Qwen-Image-2512/resolve/main/transformer/diffusion_pytorch_model-00009-of-00009.safetensors?download=true",
-        "C:\\Users\\19426\\Downloads"
-    )
-    # print(obj.info)
-    obj.download()
-    while obj.is_downloading:
-        print(obj.eta_f)
-        print(obj.speed_f)
-        print(obj.process)
-        print(obj.time_spent_f)
-        if obj.process >= 5:
-            obj.cancel()
-        time.sleep(0.5)

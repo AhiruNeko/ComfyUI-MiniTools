@@ -49,21 +49,3 @@ class CivitaiDownloader(Downloader):
 
     def _run_download(self, filename=None):
         super()._run_download(filename)
-
-if __name__ == "__main__":
-    import time
-    obj = CivitaiDownloader(
-        "https://civitai.com/api/download/models/1190596?type=Model&format=SafeTensor&size=full&fp=bf16",
-        "C:\\Users\\19426\\Downloads",
-        "ef1e02bdb259b62c5ca1cf2c7fed1871"
-    )
-    # print(obj.info)
-    obj.download()
-    while obj.is_downloading:
-        print(obj.eta_f)
-        print(obj.speed_f)
-        print(obj.process)
-        print(obj.time_spent_f)
-        if obj.process >= 3:
-            obj.cancel()
-        time.sleep(0.5)
