@@ -1,3 +1,40 @@
+.title-text {
+    color:#aaa; font-size:11px;
+}
+
+.main-text {
+    font-weight:bold; color:#fff; font-size:12px;
+}
+
+.container {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.button {
+    border: 1px solid #5e5e5e;
+    color: white;
+    background: #2a2a2a;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.button:hover {
+    background: #353535;
+}
+
+.input-box {
+    flex: 1;
+    background: #111;
+    border: 1px solid #444;
+    color: #eee;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    outline: none;
+}
+
 #minitools-toggle-btn {
     font-family: Arial, sans-serif;
     position: fixed;
@@ -136,7 +173,7 @@
     max-height: 0;
     opacity: 0;
     overflow: hidden;
-    transition: max-height 0.3s ease-in-out, opacity 0.2s ease;
+    transition: max-height 0.2s ease-in-out, opacity 0.2s ease;
     padding: 0 14px;
 }
 
@@ -171,42 +208,10 @@
     outline: none;
 }
 
-.search-settings {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 10px;
-}
-
-#search-src-input {
-    flex: 1;
-    background: #111;
-    border: 1px solid #444;
-    color: #eee;
-    padding: 6px 10px;
-    border-radius: 4px;
-    font-size: 13px;
-    outline: none;
-}
-
-#character-search-input:focus {
-    border-color: #8fcbf2;
-}
-
-.button {
-    border: 1px solid #5e5e5e;
-    color: white;
-    background: #2a2a2a;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.button:hover {
-    background: #353535;
-}
-
 .search-results-container {
     display: flex;
-    width: 400px;
+    min-width: 390px;
+    max-width: 400px;
     min-height: 100px;
     max-height: 400px;
     overflow-y: auto;
@@ -328,4 +333,55 @@
     align-items: center;
     gap: 5px;
     height: 25px;
+}
+
+#preset-label {
+    font-size: 13px;
+}
+
+#preset-selections {
+    font-size: 13px;
+    width: 60%;
+    height: 25px;
+}
+
+#download-url {
+    flex: 1;
+    background: #111;
+    border: 1px solid #444;
+    color: #eee;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    outline: none;
+}
+
+#download-info-label {
+    display: flex;
+    font-size: 12px;
+    color: #878787;
+    align-content: center;
+    position: relative;
+    left:10px;
+    gap: 5px;
+    height: 25px;
+}
+
+.info-container {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    display: flex;
+    overflow-y: auto;
+    overflow-x: visible;
+    gap: 12px;
+    padding:10px;
+    min-height: 80px;
+    max-height: 350px;
+    min-width: 195px;
+    max-width: 200px;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    font-family: sans-serif;
+    flex-direction: column;
 }

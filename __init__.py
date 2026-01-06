@@ -50,7 +50,7 @@ DEFAULT_SRC_PATH = os.path.abspath(os.path.join(CURRENT_DIR, "assets", "characte
 @server.PromptServer.instance.routes.get("/minitools/get_init_config")
 async def get_init_config(request):
     try:
-        with open(os.path.join(CURRENT_DIR, "assets", "characterSearchSrc","config.json"), "r") as file:
+        with open(os.path.join(CURRENT_DIR, "config.json"), "r") as file:
             config = json.load(file)
             if os.path.exists(config["src"]) and os.path.isfile(config["src"]):
                 return web.json_response(config)
@@ -65,10 +65,10 @@ async def get_init_config(request):
 @server.PromptServer.instance.routes.get("/minitools/get_default_src")
 async def get_default_src(request):
     try:
-        with open(os.path.join(CURRENT_DIR, "assets", "characterSearchSrc", "config.json"), "r") as file:
+        with open(os.path.join(CURRENT_DIR, "config.json"), "r") as file:
             config = json.load(file)
         config["src"] = DEFAULT_SRC_PATH
-        with open(os.path.join(CURRENT_DIR, "assets", "characterSearchSrc", "config.json"), "w") as file:
+        with open(os.path.join(CURRENT_DIR, "config.json"), "w") as file:
             json.dump(config, file)
     except Exception as exception:
         print(traceback.format_exc())
@@ -99,10 +99,10 @@ async def get_local_path(request):
     file_path = await asyncio.to_thread(ask_open_file_native)
     if file_path:
         try:
-            with open(os.path.join(CURRENT_DIR, "assets", "characterSearchSrc", "config.json"), "r") as file:
+            with open(os.path.join(CURRENT_DIR, "config.json"), "r") as file:
                 config = json.load(file)
             config["src"] = file_path
-            with open(os.path.join(CURRENT_DIR, "assets", "characterSearchSrc", "config.json"), "w") as file:
+            with open(os.path.join(CURRENT_DIR, "config.json"), "w") as file:
                 json.dump(config, file)
         except Exception as exception:
             print(exception)

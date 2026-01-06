@@ -1,5 +1,6 @@
 import { app } from "../../scripts/app.js";
 import { characterSearch } from "./characterSearch.js";
+import { modelDownloader } from "./modelDownloader.js";
 
 app.registerExtension({
     name: "ComfyUI.MiniTools.Linked",
@@ -70,6 +71,7 @@ app.registerExtension({
 
         const initCollapsible = (container) => {
             const sections = container.querySelectorAll(".collapsible-section");
+            console.log(sections)
             sections.forEach(section => {
                 const header = section.querySelector(".section-header");
                 if (header) {
@@ -106,12 +108,15 @@ app.registerExtension({
                 clickInPopoverEl = popoverEl.contains(event.target);
             }
             if (!clickInBtn && !clickInSidebar && !clickInPopoverEl && !sidebar.classList.contains("minitools-hidden") && !mousedownInside) {
-                sidebar.classList.add("minitools-hidden")
+                sidebar.classList.add("minitools-hidden");
             }
-            mousedownInside = false
+            mousedownInside = false;
         });
 
-        await characterSearch()
+        const response = await fetch('/minitools/get_init_config');
+        const configData = await response.json();
+        await characterSearch(configData);
+        await modelDownloader(configData);
     }
 });
 

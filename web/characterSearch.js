@@ -1,90 +1,89 @@
 import { api } from "../../scripts/api.js";
 
-export async function characterSearch() {
+export async function characterSearch(config_data) {
     const moegirlSearchBtn = document.getElementById("moegirl-search-btn");
-        const characterSearchInput = document.getElementById("character-search-input")
-        const moegirlUrl = "https://moegirl.org"
-        moegirlSearchBtn.addEventListener("click", () => {
-            window.open(moegirlUrl + "/" + characterSearchInput.value, '_blank');
-        });
+    const characterSearchInput = document.getElementById("character-search-input")
+    const moegirlUrl = "https://moegirl.org"
+    moegirlSearchBtn.addEventListener("click", () => {
+        window.open(moegirlUrl + "/" + characterSearchInput.value, '_blank');
+    });
 
-        const searchSrcInput = document.getElementById('search-src-input');
-        const chooseBtn = document.getElementById('choose-src-btn');
-        let currentExcelPath = "";
-        chooseBtn.onclick = async () => {
-            const response = await fetch('/minitools/get_local_path');
-            const data = await response.json();
-            if (data.src) {
-                currentExcelPath = data.src;
-                searchSrcInput.value = currentExcelPath;
-            }
-        };
-        const response = await fetch('/minitools/get_init_config');
+    const searchSrcInput = document.getElementById('search-src-input');
+    const chooseBtn = document.getElementById('choose-src-btn');
+    let currentExcelPath = "";
+    chooseBtn.onclick = async () => {
+        const response = await fetch('/minitools/get_local_path');
         const data = await response.json();
         if (data.src) {
             currentExcelPath = data.src;
             searchSrcInput.value = currentExcelPath;
         }
+    };
 
-        const characterSearchBtn = document.getElementById("character-search-btn");
-        let isSearching = false;
-        let currentRequestId = null;
-        const searchProgress = document.getElementById("search-progress");
-        characterSearchBtn.addEventListener("click", async () => {
-            if (isSearching) {
-                await api.fetchApi("/minitools/cancel_search", {
-                    method: "POST",
-                    body: JSON.stringify({request_id: currentRequestId}),
-                });
-                isSearching = false
-                return;
-            }
-            isSearching = true;
-            searchProgress.textContent = "搜索进度0%"
-            characterSearchBtn.innerText = "取消";
-            const src = searchSrcInput.value;
-            const query = characterSearchInput.value;
-            currentRequestId = crypto.randomUUID();
-            const response = await api.fetchApi("/minitools/search_handler", {
+    if (config_data.src) {
+        currentExcelPath = config_data.src;
+        searchSrcInput.value = currentExcelPath;
+    }
+
+    const characterSearchBtn = document.getElementById("character-search-btn");
+    let isSearching = false;
+    let currentRequestId = null;
+    const searchProgress = document.getElementById("search-progress");
+    characterSearchBtn.addEventListener("click", async () => {
+        if (isSearching) {
+            await api.fetchApi("/minitools/cancel_search", {
                 method: "POST",
-                body: JSON.stringify({query: query, src: src, request_id: currentRequestId}),
+                body: JSON.stringify({request_id: currentRequestId}),
             });
-            const data = await response.json();
-            isSearching = false;
-            if (data.length){
-                searchProgress.textContent = "搜索完成, 共" + data.length + "条结果";
-            } else {
-                searchProgress.textContent = "输入关键词进行搜索";
-            }
-            characterSearchBtn.innerText = "搜索";
-            if (data.error) {
-                alert("Search error: " + data.error);
-                return;
-            }
-            if (data.results) {
-                renderResults(data.results);
-            }
+            isSearching = false
+            return;
+        }
+        isSearching = true;
+        searchProgress.textContent = "搜索进度0%"
+        characterSearchBtn.innerText = "取消";
+        const src = searchSrcInput.value;
+        const query = characterSearchInput.value;
+        currentRequestId = crypto.randomUUID();
+        const response = await api.fetchApi("/minitools/search_handler", {
+            method: "POST",
+            body: JSON.stringify({query: query, src: src, request_id: currentRequestId}),
         });
+        const data = await response.json();
+        isSearching = false;
+        if (data.length){
+            searchProgress.textContent = "搜索完成, 共" + data.length + "条结果";
+        } else {
+            searchProgress.textContent = "输入关键词进行搜索";
+        }
+        characterSearchBtn.innerText = "搜索";
+        if (data.error) {
+            alert("Search error: " + data.error);
+            return;
+        }
+        if (data.results) {
+            renderResults(data.results);
+        }
+    });
 
-        api.addEventListener("minitools_progress", ({ detail }) => {
-            const progress = detail.value;
+    api.addEventListener("minitools_progress", ({ detail }) => {
+        const progress = detail.value;
 
-            if (searchProgress) {
-                if (progress < 100) {
-                    searchProgress.textContent = "搜索进度" + progress + "%";
-                }
+        if (searchProgress) {
+            if (progress < 100) {
+                searchProgress.textContent = "搜索进度" + progress + "%";
             }
-        });
+        }
+    });
 
-        const defaultSrcBtn = document.getElementById("default-src-btn");
-        defaultSrcBtn.addEventListener("mousedown", async () => {
-           const response = await fetch("/minitools/get_default_src");
-           const data = await response.json();
-           if (data.src) {
-               showToast("默认搜索源已加载");
-               searchSrcInput.value = data.src;
-           }
-        });
+    const defaultSrcBtn = document.getElementById("default-src-btn");
+    defaultSrcBtn.addEventListener("mousedown", async () => {
+       const response = await fetch("/minitools/get_default_src");
+       const data = await response.json();
+       if (data.src) {
+           showToast("默认搜索源已加载");
+           searchSrcInput.value = data.src;
+       }
+    });
 }
 
 function renderResults(results) {
