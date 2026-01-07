@@ -5,9 +5,6 @@ import cgi
 import time
 import traceback
 from urllib.parse import unquote
-from concurrent.futures import ThreadPoolExecutor
-
-executor = ThreadPoolExecutor(max_workers=10)
 
 class Downloader:
     def __init__(self, url, path=""):
