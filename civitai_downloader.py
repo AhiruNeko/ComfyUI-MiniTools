@@ -1,6 +1,6 @@
 import re
 import requests
-from downloader import Downloader
+from .downloader import Downloader
 
 
 class CivitaiDownloader(Downloader):
@@ -11,8 +11,13 @@ class CivitaiDownloader(Downloader):
         if self.api_key:
             self.api_headers["Authorization"] = f"Bearer {self.api_key}"
 
-    @property
-    def info(self):
+    def set_api_key(self, api_key):
+        self.api_key = api_key
+        self.api_headers = self.headers.copy()
+        if self.api_key:
+            self.api_headers["Authorization"] = f"Bearer {self.api_key}"
+
+    def get_info(self):
         auth_headers = self.headers.copy()
         if hasattr(self, 'api_key') and self.api_key:
             auth_headers["Authorization"] = f"Bearer {self.api_key}"

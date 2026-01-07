@@ -5,12 +5,14 @@ import cgi
 import time
 import traceback
 from urllib.parse import unquote
+from concurrent.futures import ThreadPoolExecutor
 
+executor = ThreadPoolExecutor(max_workers=10)
 
 class Downloader:
-    def __init__(self, url, path_or_dir=""):
+    def __init__(self, url, path=""):
         self.url = url
-        self.path = path_or_dir
+        self.path = path
         self._process = 0
         self.is_downloading = False
         self._cancelled = False
@@ -21,6 +23,12 @@ class Downloader:
         }
         self._total_bytes = 0
         self._downloaded_bytes = 0
+
+    def set_url(self, url):
+        self.url = url
+
+    def set_path(self, path):
+        self.path = path
 
     @property
     def process(self):
@@ -73,8 +81,7 @@ class Downloader:
         h, m = divmod(m, 60)
         return f"{h:02d}:{m:02d}:{s:02d}" if h > 0 else f"{m:02d}:{s:02d}"
 
-    @property
-    def info(self):
+    def get_info(self):
         try:
             with requests.get(self.url, headers=self.headers, stream=True, allow_redirects=True, timeout=15) as r:
                 if r.status_code == 403:
@@ -118,7 +125,7 @@ class Downloader:
 
     def _run_download(self, filename=None):
         try:
-            details = self.info
+            details = self.get_info()
             final_url = details.get("url", self.url)
             current_save_path = self.path
 
@@ -139,7 +146,7 @@ class Downloader:
                 os.makedirs(parent_dir, exist_ok=True)
 
                 with open(current_save_path, 'wb') as f:
-                    self._downloaded_bytes = 0  # 重置已下载量
+                    self._downloaded_bytes = 0
                     for chunk in r.iter_content(chunk_size=1024 * 1024):
                         if self._cancelled:
                             break

@@ -50,13 +50,36 @@
                         <option value="default">默认</option>
                     </select>
                     <button id="download-btn" class="button">开始下载</button>
+                    <button id="reload-btn" class="button">刷新</button>
                 </div>
-                <label id="download-info-label">下载信息</label>
-                <div class="info-container" id="info-container">
-                    <label class="title-text">文件名</label>
-                    <label id="filename-label" class="main-text">-</label>
-                    <label class="title-text">文件大小</label>
-                    <label id="file-size-label" class="main-text">-</label>
+                <div style="display: flex; flex-direction: row; gap: 8px;">
+                    <div style="display: flex; flex-direction: column;">
+                        <label id="download-info-label">下载信息</label>
+                        <div class="info-container" id="info-container">
+                            <label class="title-text">文件名</label>
+                            <label id="filename-label" class="main-text">-</label>
+                            <label class="title-text">文件大小</label>
+                            <label id="file-size-label" class="main-text">-</label>
+
+                            <div id="civitai-info" style="display: flex; flex-direction: column;gap: 12px">
+                                <label class="title-text">模型名称</label>
+                                <label id="model-name-label" class="main-text">-</label>
+                                <label class="title-text">模型版本</label>
+                                <label id="model-version-label" class="main-text">-</label>
+                                <label class="title-text">模型类型</label>
+                                <label id="model-type-label" class="main-text">-</label>
+                                <label class="title-text">基础模型</label>
+                                <label id="base-model-label" class="main-text">-</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <label class="title-text" id="api-key-label">API Key</label>
+                        <div style="display: flex; flex-direction: row; gap: 5px;">
+                            <input type="password" id="api-key-input" class="input-box" autocomplete="off" readonly>
+                            <button class="button" id="api-key-edit-btn">编辑</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

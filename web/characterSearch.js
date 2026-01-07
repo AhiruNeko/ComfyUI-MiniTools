@@ -1,4 +1,5 @@
 import { api } from "../../scripts/api.js";
+import { showToast } from "./utils.js";
 
 export async function characterSearch(config_data) {
     const moegirlSearchBtn = document.getElementById("moegirl-search-btn");
@@ -178,30 +179,4 @@ function renderResults(results) {
         itemEl.appendChild(iconEl);
         container.appendChild(itemEl);
     });
-}
-
-function showToast(message) {
-    const toast = document.createElement("div");
-    toast.innerText = message;
-    toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #353535;
-        color: white;
-        padding: 10px 20px;
-        border-radius: 4px;
-        border: 1px solid white;
-        z-index: 10001;
-        pointer-events: none;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-        transition: opacity 0.3s;
-    `;
-    document.body.appendChild(toast);
-
-    setTimeout(() => {
-        toast.style.opacity = "0";
-        setTimeout(() => toast.remove(), 300);
-    }, 1500);
 }

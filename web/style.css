@@ -375,13 +375,17 @@
     overflow-x: visible;
     gap: 12px;
     padding:10px;
-    min-height: 80px;
-    max-height: 350px;
-    min-width: 195px;
-    max-width: 200px;
+    height: 380px;
+    min-width: 185px;
+    max-width: 190px;
     background-color: #1a1a1a;
     border: 1px solid #333;
     border-radius: 8px;
     font-family: sans-serif;
     flex-direction: column;
+}
+
+#api-key-input {
+    min-width: 140px;
+    max-width: 145px;
 }

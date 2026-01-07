@@ -10,6 +10,7 @@ import uuid
 import sys
 import subprocess
 import importlib.util
+from .downloader_manager import DownloaderManager
 
 package_name = 'rapidfuzz'
 spec = importlib.util.find_spec(package_name)
@@ -47,6 +48,8 @@ print(f"[ComfyUI-MiniTools]Loaded ComfyUI-MiniTools from {EXTENSION_PATH}")
 CURRENT_DIR = os.path.dirname(__file__)
 DEFAULT_SRC_PATH = os.path.abspath(os.path.join(CURRENT_DIR, "assets", "characterSearchSrc", "danbooru_character_webui.csv"))
 
+DOWNLOADER = DownloaderManager()
+
 @server.PromptServer.instance.routes.get("/minitools/get_init_config")
 async def get_init_config(request):
     try:
@@ -58,9 +61,8 @@ async def get_init_config(request):
         print(traceback.format_exc())
         print(exception)
     default_path = DEFAULT_SRC_PATH if os.path.exists(DEFAULT_SRC_PATH) else ""
-    return web.json_response({
-        "src": default_path
-    })
+    config["src"] = default_path
+    return web.json_response(config)
 
 @server.PromptServer.instance.routes.get("/minitools/get_default_src")
 async def get_default_src(request):
@@ -94,20 +96,23 @@ def ask_open_file_native():
         print(exception)
         return ""
 
+def edit_config(key, val):
+    try:
+        with open(os.path.join(CURRENT_DIR, "config.json"), "r") as file:
+            config = json.load(file)
+        config[key] = val
+        with open(os.path.join(CURRENT_DIR, "config.json"), "w") as file:
+            json.dump(config, file)
+    except Exception as exception:
+        print(exception)
+        print(traceback.format_exc())
+
+
 @server.PromptServer.instance.routes.get("/minitools/get_local_path")
 async def get_local_path(request):
     file_path = await asyncio.to_thread(ask_open_file_native)
     if file_path:
-        try:
-            with open(os.path.join(CURRENT_DIR, "config.json"), "r") as file:
-                config = json.load(file)
-            config["src"] = file_path
-            with open(os.path.join(CURRENT_DIR, "config.json"), "w") as file:
-                json.dump(config, file)
-        except Exception as exception:
-            print(exception)
-            print(traceback.format_exc())
-
+        edit_config("src", file_path)
         return web.json_response({"src": os.path.abspath(file_path)})
     else:
         return web.json_response({"src": ""})
@@ -136,3 +141,22 @@ async def cancel_handler(request):
     request_id = data.get("request_id", "default")
     cancel_flags[request_id] = True
     return web.json_response({"canceled": "Search cancelled by user"})
+
+@server.PromptServer.instance.routes.post("/minitools/get_download_info")
+async def get_download_info(request):
+    global DOWNLOADER
+    data = await request.json()
+    url = data.get("url", "")
+    civitai_api_key = data.get("civitaiApiKey", "")
+    mode = data.get("mode", "default")
+    DOWNLOADER.set_url(url)
+    DOWNLOADER.set_mode(mode)
+    DOWNLOADER.set_civitai_api_key(civitai_api_key)
+    info = await asyncio.to_thread(DOWNLOADER.get_info)
+    return web.json_response(info)
+
+@server.PromptServer.instance.routes.post("/minitools/save_civitai_api_config")
+async def save_civitai_api_config(request):
+    data = await request.json()
+    edit_config("civitai_api_key", data.get("civitai_api_key", ""))
+    return web.Response(status=204)

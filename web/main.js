@@ -71,7 +71,6 @@ app.registerExtension({
 
         const initCollapsible = (container) => {
             const sections = container.querySelectorAll(".collapsible-section");
-            console.log(sections)
             sections.forEach(section => {
                 const header = section.querySelector(".section-header");
                 if (header) {
