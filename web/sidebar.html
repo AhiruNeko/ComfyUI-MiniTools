@@ -75,9 +75,21 @@
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 12px;">
                         <label class="title-text" id="api-key-label">API Key</label>
-                        <div style="display: flex; flex-direction: row; gap: 5px;">
+                        <div style="display: flex; flex-direction: row; gap: 5px;" id="api-container">
                             <input type="password" id="api-key-input" class="input-box" autocomplete="off" readonly>
                             <button class="button" id="api-key-edit-btn">编辑</button>
+                        </div>
+                        <label class="title-text">模型分类(保存路径)</label>
+                        <div style="display: flex; flex-direction: row; gap: 5px; height: 25px;">
+                            <button class="button" id="add-classify-btn">添加分类</button>
+                            <button class="button" id="clear-classify-btn">清空</button>
+                            <div style="display: flex; align-items: center;" id="autoClassifyContainer">
+                                <input type="checkbox" id="autoClassifyInput" checked class="input-box" style="cursor: pointer">
+                                <label for="autoClassifyInput" class="main-text" style="cursor: pointer">自动分类</label>
+                            </div>
+                        </div>
+                        <div class="classify-container" id="classify-container">
+
                         </div>
                     </div>
                 </div>

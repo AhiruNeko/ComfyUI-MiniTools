@@ -23,3 +23,108 @@ export function showToast(message, color="white") {
         setTimeout(() => toast.remove(), 300);
     }, 1500);
 }
+
+class Node {
+    constructor(value) {
+        this.value = value;
+        this.next = null;
+    }
+}
+
+export class LinkedList {
+    constructor() {
+        this.head = null;
+    }
+
+    append(value) {
+        const newNode = new Node(value);
+        if (!this.head) {
+            this.head = newNode;
+            return;
+        }
+        let current = this.head;
+        while (current.next) {
+            current = current.next;
+        }
+        current.next = newNode;
+    }
+
+    clear(callBackFunc) {
+        const value = this.head.value;
+        this.deleteFrom(value, callBackFunc);
+    }
+
+    deleteFrom(value, callBackFunc) {
+        if (!this.head) return;
+        if (this.head.value === value) {
+            let toDelete = this.head;
+            this.head = null;
+            this._processDeletion(toDelete, callBackFunc);
+            return;
+        }
+        let current = this.head;
+        while (current.next) {
+            if (current.next.value === value) {
+                let toDelete = current.next;
+                current.next = null;
+                this._processDeletion(toDelete, callBackFunc);
+                return;
+            }
+            current = current.next;
+        }
+    }
+
+    insertAfter(targetValue, newValue) {
+        let current = this.head;
+        while (current) {
+            if (current.value === targetValue) {
+                const newNode = new Node(newValue);
+                newNode.next = current.next;
+                current.next = newNode;
+                return true;
+            }
+            current = current.next;
+        }
+        return false;
+    }
+
+    removeNode(value, callBackFunc) {
+        if (!this.head) return;
+        if (this.head.value === value) {
+            const tempValue = this.head.value;
+            this.head = this.head.next;
+            if (typeof callBackFunc === 'function') callBackFunc(tempValue);
+            return;
+        }
+        let current = this.head;
+        while (current.next) {
+            if (current.next.value === value) {
+                const nodeToDelete = current.next;
+                const tempValue = nodeToDelete.value;
+                current.next = nodeToDelete.next;
+                if (typeof callBackFunc === 'function') callBackFunc(tempValue);
+                return;
+            }
+            current = current.next;
+        }
+    }
+
+    _processDeletion(node, callBackFunc) {
+        if (typeof callBackFunc !== 'function') return;
+        let temp = node;
+        while (temp) {
+            callBackFunc(temp.value);
+            temp = temp.next;
+        }
+    }
+
+    print() {
+        let current = this.head;
+        let res = [];
+        while (current) {
+            res.push(current.value);
+            current = current.next;
+        }
+        console.log(res.length ? res.join(" -> ") : "Empty");
+    }
+}
