@@ -1,6 +1,7 @@
 import os
 import server
 import traceback
+from .utils import MODEL_DIR, get_folders
 from aiohttp import web
 import asyncio
 import json
@@ -160,3 +161,9 @@ async def save_civitai_api_config(request):
     data = await request.json()
     edit_config("civitai_api_key", data.get("civitai_api_key", ""))
     return web.Response(status=204)
+
+@server.PromptServer.instance.routes.post("/minitools/get_classifications")
+async def get_classifications(request):
+    data = await request.json()
+    path = data.get("path", utils.MODEL_DIR)
+    return web.json_response({"folders": get_folders(MODEL_DIR, *path)})

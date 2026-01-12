@@ -127,4 +127,24 @@ export class LinkedList {
         }
         console.log(res.length ? res.join(" -> ") : "Empty");
     }
+
+    toList(startValue = null, endValue = null) {
+        let current = this.head;
+        const res = [];
+        if (startValue !== null) {
+            while (current && current.value !== startValue) {
+                current = current.next;
+            }
+        }
+        if (!current) return [];
+
+        while (current) {
+            res.push(current.value);
+            if (endValue !== null && current.value === endValue) {
+                break;
+            }
+            current = current.next;
+        }
+        return res;
+    }
 }

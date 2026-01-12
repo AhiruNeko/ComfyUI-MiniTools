@@ -21,8 +21,13 @@ export async function modelDownloader(configData) {
     const addClassifyBtn = document.getElementById("add-classify-btn");
     const clearClassifyBtn = document.getElementById("clear-classify-btn");
     const autoClassifyContainer = document.getElementById("autoClassifyContainer");
+    const classifyRecommendations = document.getElementById("classify-recommendations");
 
     const classificationsLinkedList = new LinkedList();
+
+    let inputBox = null;
+    let recommendationsDisplay = false;
+    let recommendationClicked = false;
 
     if (configData.civitai_api_key) {
         apiKeyInput.value = configData.civitai_api_key;
@@ -87,9 +92,15 @@ export async function modelDownloader(configData) {
     async function loadInfo() {
         const url = downloadUrl.value;
         if (!checkUrl(url)) {
-            if (url !== "") downloadInfoLabel.textContent = "下载链接与预设不匹配";
+            if (url !== "") {
+                downloadInfoLabel.textContent = "下载链接与预设不匹配";
+            } else {
+                downloadInfoLabel.textContent = "下载信息";
+            }
             updateInfo();
             return;
+        } else {
+            downloadInfoLabel.textContent = "下载信息";
         }
 
         if (presetSelections.value === "civitai" && apiKeyInput.value === "") {
@@ -157,11 +168,49 @@ export async function modelDownloader(configData) {
         classifyInputBox.placeholder = "输入分类";
         classifyInputBox.className = "classify-input-box";
         item.appendChild(classifyInputBox);
-        classifyInputBox.addEventListener("focus", async () => {
+        classifyInputBox.addEventListener("click", async () => {
+            if (recommendationsDisplay && inputBox === classifyInputBox) {
+                inputBox = classifyInputBox;
+                classifyRecommendations.style.display = "none";
+                classifyRecommendations.innerHTML = "";
+                recommendationsDisplay = false;
+                return;
+            }
+            inputBox = classifyInputBox;
+            const itemList = classificationsLinkedList.toList(null, item);
+            const pathList = itemList.slice(0, -1).map(div => {
+                const input = div.querySelector('input');
+                return input ? input.value : "";
+            });
+            const response = await api.fetchApi("/minitools/get_classifications", {
+                method: "POST",
+                body: JSON.stringify({path: pathList}),
+            });
+            const data = await response.json();
+            let recommendations = [];
+            if (data.folders) recommendations = data.folders;
+            if (recommendations.length === 0) return;
 
-        });
-        classifyInputBox.addEventListener("blur", () => {
-
+            recommendationsDisplay = true;
+            const rect = classifyInputBox.getBoundingClientRect();
+            classifyRecommendations.style.left = `${rect.left}px`;
+            classifyRecommendations.style.top = `${rect.bottom + window.scrollY}px`;
+            classifyRecommendations.style.display = "flex";
+            recommendations.forEach(data => {
+                const recommendation = document.createElement("div");
+                recommendation.className = "recommendation";
+                recommendation.innerHTML = `<label class="title-text">${data}</label>`;
+                recommendation.addEventListener("click", () => {
+                    setTimeout(() => {
+                        recommendationClicked = true
+                        classifyInputBox.value = data;
+                        classifyRecommendations.style.display = "none";
+                        classifyRecommendations.innerHTML = "";
+                    }, 100);
+                    recommendationsDisplay = false;
+                });
+                classifyRecommendations.appendChild(recommendation);
+            });
         });
 
         const addChild = document.createElement("div");
@@ -179,6 +228,7 @@ export async function modelDownloader(configData) {
         removeCurrent.title = "移除分类";
         item.appendChild(removeCurrent);
         removeCurrent.addEventListener("click", () => {
+
             classificationsLinkedList.removeNode(item, (v) => v.remove());
         });
 
@@ -200,6 +250,17 @@ export async function modelDownloader(configData) {
         insertAfter(lastNode, item);
         classificationsLinkedList.insertAfter(lastNode, item);
     }
+
+    document.addEventListener("click", (event) => {
+        if (inputBox === null) return;
+        const clickInInputBox = inputBox.contains(event.target);
+        const clickInRecommendations = classifyRecommendations.contains(event.target);
+        if (!clickInInputBox && !clickInRecommendations) {
+            classifyRecommendations.style.display = "none";
+            classifyRecommendations.innerHTML = "";
+            recommendationsDisplay = false;
+        }
+    });
 
     addClassifyBtn.addEventListener("click", () => {
         addCategory();

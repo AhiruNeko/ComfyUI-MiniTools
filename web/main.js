@@ -101,12 +101,20 @@ app.registerExtension({
         document.addEventListener("click", (event) => {
             const clickInBtn = btn.contains(event.target);
             const clickInSidebar = sidebar.contains(event.target);
+
             const popoverEl = document.getElementById("info-popover");
             let clickInPopoverEl = false;
             if (popoverEl != null) {
                 clickInPopoverEl = popoverEl.contains(event.target);
             }
-            if (!clickInBtn && !clickInSidebar && !clickInPopoverEl && !sidebar.classList.contains("minitools-hidden") && !mousedownInside) {
+
+            const classifyRecommendations = document.getElementById("classify-recommendations");
+            let clickInClassifyRecommendations = false;
+            if (classifyRecommendations != null) {
+                clickInClassifyRecommendations = classifyRecommendations.contains(event.target);
+            }
+
+            if (!clickInBtn && !clickInSidebar && !clickInPopoverEl && !clickInClassifyRecommendations && !sidebar.classList.contains("minitools-hidden") && !mousedownInside) {
                 sidebar.classList.add("minitools-hidden");
             }
             mousedownInside = false;
