@@ -52,5 +52,5 @@ class CivitaiDownloader(Downloader):
 
         return base_info
 
-    def _run_download(self, filename=None):
-        super()._run_download(filename)
+    def _run_download(self, filename=None, func=None):
+        super()._run_download(filename, func)

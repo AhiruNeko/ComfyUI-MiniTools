@@ -494,3 +494,81 @@
 .recommendation:hover {
     background-color: #252525;
 }
+
+.reload-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    color: #888;
+    transition: all 0.2s;
+    user-select: none;
+    position: relative;
+    left: 8px;
+    bottom: 3px;
+}
+
+.reload-btn:hover {
+    color: white;
+}
+
+.download-btn {
+    border: 1px solid #5e5e5e;
+    color: white;
+    background: #2a2a2a;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background 0.1s;
+}
+
+.download-btn.loading {
+    pointer-events: none;
+}
+
+.download-process-popover {
+    display: none;
+    position: fixed;
+    z-index: 99999;
+    background: #2c2c2c;
+    color: #eee;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #444;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    pointer-events: none;
+    font-size: 13px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    white-space: normal;
+    flex-direction: column;
+    gap: 5px
+}
+
+.download-process-popover::before {
+    content: "";
+    position: absolute;
+    left: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent #2d2d2d transparent transparent;
+}
+
+.locked-container {
+    cursor: default;
+}
+
+.locked-container *:not(.excluded-from-lock) {
+    pointer-events: none !important;
+    opacity: 0.8;
+}
+
+.excluded-from-lock {
+    pointer-events: auto !important;
+    opacity: 1 !important;
+}

@@ -32,8 +32,18 @@ class DownloaderManager:
     def cancel(self):
         return self.downloader.cancel()
 
-    def download(self, filename=None):
-        self.downloader.download(filename)
+    def download(self, filename=None, func=None):
+        if self.is_downloading:
+            return
+        self.downloader.download(filename, func)
+
+    @property
+    def downloaded_bytes(self):
+        return self.downloader.download_bytes
+
+    @property
+    def is_downloading(self):
+        return self.downloader.is_downloading
 
     @property
     def process(self):

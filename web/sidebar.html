@@ -5,6 +5,24 @@
 
 <div id="info-popover" class="info-popover"></div>
 <div id="classify-recommendations" class="classify-recommendations"></div>
+<div id="download-process-popover" class="download-process-popover">
+    <div style="flex-direction: row">
+        <label class="title-text">下载进度</label>
+        <label class="main-text" id="download-percentage-label">NaN</label>
+    </div>
+    <div style="flex-direction: row">
+        <label class="title-text">已用时</label>
+        <label class="main-text" id="download-time-spent-label">NaN</label>
+    </div>
+    <div style="flex-direction: row">
+        <label class="title-text">剩余时间</label>
+        <label class="main-text" id="download-eta-label">NaN</label>
+    </div>
+    <div style="flex-direction: row">
+        <label class="title-text">下载速度</label>
+        <label class="main-text" id="download-speed-label">NaN</label>
+    </div>
+</div>
 
 <div id="minitools-sidebar" class="minitools-hidden">
     <div class="minitools-header" id="sidebar-drag-handle">
@@ -40,26 +58,36 @@
                 <span class="arrow">▼</span>
                 <span class="section-title">模型下载</span>
             </div>
-            <div class="section-body">
+            <div class="section-body lock-interaction" id="download-model-container">
                 <div class="container" style="flex-direction: column">
-                    <input type="text" id="download-url" class="input-box" autocomplete="off" placeholder="请输入下载链接">
                     <div class="container" style="flex-direction: row">
+                        <label class="title-text" style="align-content: center">下载链接</label>
+                        <input type="text" id="download-url" class="input-box" autocomplete="off" placeholder="请输入下载链接">
+                    </div>
+                    <div class="container" style="flex-direction: row">
+                        <label class="title-text" style="align-content: center">文件名</label>
+                        <input type="text" id="filename-input" class="input-box" autocomplete="off" placeholder="请输入文件名">
+                    </div>
+                    <div class="container" style="flex-direction: row">
+                        <label class="title-text" style="align-content: center">保存到</label>
                         <input type="text" id="save-path-input" class="input-box" autocomplete="off" placeholder="请输入保存路径">
                         <button class="button" id="choose-save-path-btn">浏览</button>
                     </div>
                 </div>
                 <div class="container">
-                    <label for="preset-selections" id="preset-label" class="title-text">预设</label>
+                    <label for="preset-selections" id="preset-label" class="title-text" style="align-content: center">预设</label>
                     <select id="preset-selections" name="models" class="button">
                         <option value="civitai">Civitai</option>
                         <option value="default">默认</option>
                     </select>
-                    <button id="download-btn" class="button">开始下载</button>
-                    <button id="reload-btn" class="button">刷新</button>
+                    <button id="download-btn" class="download-btn" style="width: 110px">开始下载</button>
                 </div>
                 <div style="display: flex; flex-direction: row; gap: 8px;">
                     <div style="display: flex; flex-direction: column;">
-                        <label id="download-info-label">下载信息</label>
+                        <div style="display: flex; flex-direction: row;">
+                            <div class="reload-btn" title="刷新下载信息" id="reload-btn">⟳</div>
+                            <label id="download-info-label">下载信息</label>
+                        </div>
                         <div class="info-container" id="info-container">
                             <label class="title-text">文件名</label>
                             <label id="filename-label" class="main-text">-</label>

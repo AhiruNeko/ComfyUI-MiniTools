@@ -2,6 +2,7 @@ import { api } from "../../scripts/api.js";
 import { showToast, LinkedList } from "./utils.js";
 
 export async function modelDownloader(configData) {
+    const downloadModelContainer = document.getElementById("download-model-container");
     const presetSelections = document.getElementById("preset-selections");
     const downloadInfoLabel = document.getElementById("download-info-label");
     const downloadUrl = document.getElementById("download-url");
@@ -26,6 +27,13 @@ export async function modelDownloader(configData) {
     const chooseSavePathBtn = document.getElementById("choose-save-path-btn");
     const autoClassifyInput = document.getElementById("auto-classify-input");
     const autoClassifyUpdateBtn = document.getElementById("auto-classify-update-btn");
+    const filenameInput = document.getElementById("filename-input");
+    const downloadBtn = document.getElementById("download-btn");
+    const downloadProcessPopover = document.getElementById("download-process-popover");
+    const downloadPercentageLabel = document.getElementById("download-percentage-label");
+    const downloadTimeSpentLabel = document.getElementById("download-time-spent-label");
+    const downloadEtaLabel = document.getElementById("download-eta-label");
+    const downloadSpeedLabel = document.getElementById("download-speed-label");
 
     const classificationsLinkedList = new LinkedList();
 
@@ -35,6 +43,9 @@ export async function modelDownloader(configData) {
     let classifyChangeTimeout = null;
     let savePathInputTimeout = null;
     let downloadData = null;
+    let isDownloading = false;
+    let downloadProcessData = null;
+    let downloadInfoLoaded = false;
 
     const modelPathResponse = await fetch("/minitools/get_model_path");
     const modelPathData = await modelPathResponse.json();
@@ -106,6 +117,10 @@ export async function modelDownloader(configData) {
         }, 500);
     });
 
+    downloadUrl.addEventListener("focus", () => {
+        downloadUrl.setSelectionRange(0, downloadUrl.value.length);
+    });
+
     async function loadInfo() {
         const url = downloadUrl.value;
         if (!checkUrl(url)) {
@@ -126,6 +141,7 @@ export async function modelDownloader(configData) {
         }
 
         downloadInfoLabel.textContent = "正在加载......";
+        downloadInfoLoaded = false;
         const response = await api.fetchApi("/minitools/get_download_info", {
             method: "POST",
             body: JSON.stringify({mode: presetSelections.value, url: url, civitaiApiKey: apiKeyInput.value}),
@@ -140,10 +156,13 @@ export async function modelDownloader(configData) {
         updateInfo(data);
         downloadData = data;
 
+        if (data.suggested_filename) filenameInput.value = data.suggested_filename;
+
         const info = data.model_info || {};
         if (presetSelections.value === "civitai" && autoClassifyInput.checked) loadAutoClassify(info.type, info.base_model);
 
         downloadInfoLabel.textContent = "下载信息";
+        downloadInfoLoaded = true;
     }
 
     function checkUrl(url) {
@@ -431,4 +450,121 @@ export async function modelDownloader(configData) {
             autoClassifyUpdateBtn.classList.add("disabled");
         }
     });
+
+    downloadBtn.addEventListener("click", async () => {
+        if (!isDownloading) {
+            if (!downloadInfoLoaded) {
+                showToast("下载信息尚未加载", "red");
+                return;
+            }
+            const url = downloadUrl.value;
+            const mode = presetSelections.value;
+            const filename = filenameInput.value;
+            const apiKey = apiKeyInput.value;
+            const savePath = savePathInput.value;
+            if (!url) {
+                showToast("缺失下载链接", "red");
+                return;
+            }
+            if (mode === "civitai" && !apiKey) {
+                showToast("缺失API Key", "red");
+                return;
+            }
+            if (!savePath) {
+                showToast("缺失保存路径", "red");
+                return;
+            }
+            if (!filename) {
+                showToast("缺失文件名", "red");
+                return;
+            }
+            downloadPercentageLabel.textContent = "加载中...";
+            downloadTimeSpentLabel.textContent = "加载中...";
+            downloadEtaLabel.textContent = "加载中...";
+            downloadSpeedLabel.textContent = "加载中...";
+
+            toggleContainerLock(downloadModelContainer, downloadBtn, true);
+            const rect = downloadBtn.getBoundingClientRect();
+            const gap = 10;
+            downloadProcessPopover.style.display = "flex";
+            const targetLeft = rect.right + window.scrollX + gap;
+            const targetTop = rect.top + window.scrollY + (rect.height / 2) - (downloadProcessPopover.offsetHeight / 2);
+            downloadProcessPopover.style.left = `${targetLeft}px`;
+            downloadProcessPopover.style.top = `${targetTop}px`;
+            await api.fetchApi("/minitools/start_download", {
+                method: "POST",
+                body: JSON.stringify({
+                    url: url,
+                    mode: mode,
+                    filename: filename,
+                    apiKey: apiKey,
+                    savePath: savePath
+                })
+            });
+            isDownloading = true;
+            downloadBtn.textContent = "取消下载";
+        } else {
+            const response = await fetch("/minitools/cancel_download");
+            const data = await response.json();
+            if (data.canceled) {
+                console.log(data.canceled);
+                console.log("[MiniTools]Download task canceled.");
+                showToast("下载已取消");
+                toggleContainerLock(downloadModelContainer, downloadBtn, false);
+                isDownloading = false;
+                downloadBtn.textContent = "开始下载";
+                downloadBtn.style.background = "#2a2a2a";
+            }
+        }
+    });
+
+    api.addEventListener("minitools_download_process", ({ detail }) => {
+        downloadProcessData = detail;
+        const process = detail.process;
+        downloadBtn.style.background = `linear-gradient(to right, #8fcbf2 ${process}%, #222 ${process}%)`;
+
+        downloadPercentageLabel.textContent = formatBytes(detail.download_bytes) + " / " + formatBytes(downloadData.size);
+        downloadTimeSpentLabel.textContent = detail.time_spent;
+        downloadEtaLabel.textContent = detail.eta;
+        downloadSpeedLabel.textContent = detail.speed;
+
+        if (!detail.is_downloading) {
+            toggleContainerLock(downloadModelContainer, downloadBtn, false);
+            if (detail.process === 100) showToast("下载完成");
+            isDownloading = false;
+            downloadBtn.style.background = "#2a2a2a";
+            downloadBtn.textContent = "开始下载";
+        }
+    });
+
+    downloadBtn.addEventListener("mouseenter", () => {
+        if (isDownloading) {
+            const rect = downloadBtn.getBoundingClientRect();
+            const gap = 10;
+            downloadProcessPopover.style.display = "flex";
+            const targetLeft = rect.right + window.scrollX + gap;
+            const targetTop = rect.top + window.scrollY + (rect.height / 2) - (downloadProcessPopover.offsetHeight / 2);
+            downloadProcessPopover.style.left = `${targetLeft}px`;
+            downloadProcessPopover.style.top = `${targetTop}px`;
+        }
+    });
+
+    downloadBtn.addEventListener("mouseleave", () => {
+        downloadProcessPopover.style.display = "none";
+    });
+
+    function toggleContainerLock(containerElement, excludeElement, shouldLock) {
+        if (!containerElement) return;
+        if (shouldLock) {
+            containerElement.classList.add("locked-container");
+            if (excludeElement) {
+                excludeElement.classList.add("excluded-from-lock");
+            }
+        } else {
+            containerElement.classList.remove("locked-container");
+            if (excludeElement) {
+                excludeElement.classList.remove("excluded-from-lock");
+            }
+        }
+    }
 }

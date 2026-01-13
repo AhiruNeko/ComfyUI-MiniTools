@@ -180,7 +180,9 @@ async def get_model_path(request):
     return web.json_response({"model_path": MODEL_DIR})
 
 def ask_save_folder(initial_path=None):
-    initial_dir = initial_path if initial_path and os.path.exists(initial_path) else MODEL_DIR
+    while initial_path and not os.path.exists(initial_path):
+        initial_path = os.path.dirname(initial_path)
+    initial_dir = initial_path if os.path.exists(initial_path) else MODEL_DIR
     root = tk.Tk()
     root.withdraw()
     path = filedialog.askdirectory(
@@ -200,3 +202,33 @@ async def choose_save_path(request):
         return web.json_response({"save_path": file_path})
     else:
         return web.json_response({"save_path": ""})
+
+@server.PromptServer.instance.routes.post("/minitools/start_download")
+async def start_download(request):
+    data = await request.json()
+    url = data.get("url", "")
+    save_path = data.get("savePath", MODEL_DIR)
+    mode = data.get("mode", "default")
+    filename = data.get("filename", "")
+    api_key = data.get("apiKey", "")
+    DOWNLOADER.set_url(url)
+    DOWNLOADER.set_path(save_path)
+    DOWNLOADER.set_mode(mode)
+    if mode == "civitai":
+        DOWNLOADER.set_civitai_api_key(api_key)
+
+    DOWNLOADER.download(filename, lambda: server.PromptServer.instance.send_sync("minitools_download_process", {
+        "is_downloading": DOWNLOADER.is_downloading,
+        "eta": DOWNLOADER.eta_f,
+        "process": DOWNLOADER.process,
+        "speed": DOWNLOADER.speed_f,
+        "time_spent": DOWNLOADER.time_spent_f,
+        "download_bytes": DOWNLOADER.downloaded_bytes
+    }))
+    return web.json_response(status=204)
+
+@server.PromptServer.instance.routes.get("/minitools/cancel_download")
+async def cancel_download(request):
+    if DOWNLOADER.cancel():
+        return web.json_response({"canceled": "true"})
+    return web.json_response({"canceled": "false"})
