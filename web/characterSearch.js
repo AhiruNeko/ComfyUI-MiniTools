@@ -13,13 +13,27 @@ export async function characterSearch(config_data) {
     const chooseBtn = document.getElementById('choose-src-btn');
     let currentExcelPath = "";
     chooseBtn.onclick = async () => {
-        const response = await fetch('/minitools/get_local_path');
+        const response = await api.fetchApi('/minitools/get_local_path', {
+            method: "POST",
+            body: JSON.stringify({initialPath: searchSrcInput.value.replace(/(\/|\\)[^\/\\]*$/, '')})
+        });
         const data = await response.json();
         if (data.src) {
             currentExcelPath = data.src;
             searchSrcInput.value = currentExcelPath;
         }
     };
+
+    searchSrcInput.addEventListener("focus", () => {
+       searchSrcInput.scrollLeft = searchSrcInput.scrollWidth;
+    });
+
+    searchSrcInput.addEventListener("change", async () => {
+        await api.fetchApi("/minitools/save_src_config", {
+            method: "POST",
+            body: JSON.stringify({src: searchSrcInput.value})
+        });
+    });
 
     if (config_data.src) {
         currentExcelPath = config_data.src;

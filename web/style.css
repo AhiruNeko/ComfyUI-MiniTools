@@ -394,7 +394,7 @@
     display: flex;
     overflow-y: auto;
     overflow-x: visible;
-    padding:10px;
+    padding:1px;
     height: 275px;
     min-width: 185px;
     max-width: 190px;
@@ -455,6 +455,13 @@
     color: white;
 }
 
+.classify-btn.disabled {
+    pointer-events: none !important;
+    color: #444 !important;
+    cursor: not-allowed !important;
+    opacity: 0.5;
+}
+
 .classify-recommendations {
     display: none;
     position: fixed;
@@ -462,7 +469,7 @@
     width: auto;
     background: #2c2c2c;
     color: #eee;
-    padding: 12px;
+    padding: 5px;
     border-radius: 8px;
     border: 1px solid #444;
     box-shadow: 0 8px 24px rgba(0,0,0,0.5);

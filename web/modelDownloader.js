@@ -22,12 +22,29 @@ export async function modelDownloader(configData) {
     const clearClassifyBtn = document.getElementById("clear-classify-btn");
     const autoClassifyContainer = document.getElementById("autoClassifyContainer");
     const classifyRecommendations = document.getElementById("classify-recommendations");
+    const savePathInput = document.getElementById("save-path-input");
+    const chooseSavePathBtn = document.getElementById("choose-save-path-btn");
+    const autoClassifyInput = document.getElementById("auto-classify-input");
+    const autoClassifyUpdateBtn = document.getElementById("auto-classify-update-btn");
 
     const classificationsLinkedList = new LinkedList();
 
     let inputBox = null;
     let recommendationsDisplay = false;
     let recommendationClicked = false;
+    let classifyChangeTimeout = null;
+    let savePathInputTimeout = null;
+    let downloadData = null;
+
+    const modelPathResponse = await fetch("/minitools/get_model_path");
+    const modelPathData = await modelPathResponse.json();
+    const modelPath = modelPathData.model_path;
+    let preInputPath = modelPath;
+
+    savePathInput.value = modelPath;
+    setTimeout(() => {
+        savePathInput.scrollLeft = savePathInput.scrollWidth;
+    }, 0);
 
     if (configData.civitai_api_key) {
         apiKeyInput.value = configData.civitai_api_key;
@@ -121,6 +138,11 @@ export async function modelDownloader(configData) {
             return;
         }
         updateInfo(data);
+        downloadData = data;
+
+        const info = data.model_info || {};
+        if (presetSelections.value === "civitai" && autoClassifyInput.checked) loadAutoClassify(info.type, info.base_model);
+
         downloadInfoLabel.textContent = "下载信息";
     }
 
@@ -142,6 +164,7 @@ export async function modelDownloader(configData) {
             apiKeyInput.type = "text";
             apiKeyEditBtn.innerText = "完成";
             apiKeyInput.focus();
+            apiKeyInput.setSelectionRange(0, apiKeyInput.value.length);
        } else {
            apiKeyInput.readOnly = true;
            apiKeyInput.type = "password";
@@ -156,17 +179,50 @@ export async function modelDownloader(configData) {
 
     reloadBtn.addEventListener("click", loadInfo);
 
-    function addCategory(lastNode=null) {
+    function updateSavePath() {
+        const itemList = classificationsLinkedList.toList(null, null);
+        const pathList = itemList.map(div => {
+            const input = div.querySelector('input');
+            return input ? input.value : "";
+        });
+        savePathInput.value = [modelPath, ...pathList].join("\\");
+        setTimeout(() => {
+            savePathInput.scrollLeft = savePathInput.scrollWidth;
+        }, 0);
+        preInputPath = savePathInput.value;
+    }
+
+    function addCategory(node=null, defaultValue="", arg="after") {
         const item = document.createElement('div');
         item.className = "classify-item";
-        item.innerHTML = `
-            <label class="title-text">➥</label>
-        `;
+
+        const upBtn = document.createElement("div");
+        upBtn.className = "classify-btn";
+        upBtn.innerHTML = `↑`;
+        upBtn.title = "上移";
+        item.appendChild(upBtn);
+        upBtn.addEventListener("click", () => {
+            const preItem = classificationsLinkedList.up(item);
+            if (preItem) item.parentNode.insertBefore(item, preItem);
+            updateSavePath();
+        });
+
+        const downBtn = document.createElement("div");
+        downBtn.className = "classify-btn";
+        downBtn.innerHTML = `↓`;
+        downBtn.title = "下移";
+        item.appendChild(downBtn);
+        downBtn.addEventListener("click", () => {
+            const nextItem = classificationsLinkedList.down(item);
+            if (nextItem) item.parentNode.insertBefore(nextItem, item);
+            updateSavePath();
+        });
 
         const classifyInputBox = document.createElement("input");
         classifyInputBox.type = "text";
         classifyInputBox.placeholder = "输入分类";
         classifyInputBox.className = "classify-input-box";
+        if (defaultValue) classifyInputBox.value = defaultValue;
         item.appendChild(classifyInputBox);
         classifyInputBox.addEventListener("click", async () => {
             if (recommendationsDisplay && inputBox === classifyInputBox) {
@@ -203,7 +259,8 @@ export async function modelDownloader(configData) {
                 recommendation.addEventListener("click", () => {
                     setTimeout(() => {
                         recommendationClicked = true
-                        classifyInputBox.value = data;
+                        inputBox.value = data;
+                        updateSavePath();
                         classifyRecommendations.style.display = "none";
                         classifyRecommendations.innerHTML = "";
                     }, 100);
@@ -211,6 +268,12 @@ export async function modelDownloader(configData) {
                 });
                 classifyRecommendations.appendChild(recommendation);
             });
+        });
+        classifyInputBox.addEventListener("input", () => {
+            clearTimeout(classifyChangeTimeout);
+            classifyChangeTimeout = setTimeout(() => {
+                updateSavePath();
+            }, 500);
         });
 
         const addChild = document.createElement("div");
@@ -228,8 +291,8 @@ export async function modelDownloader(configData) {
         removeCurrent.title = "移除分类";
         item.appendChild(removeCurrent);
         removeCurrent.addEventListener("click", () => {
-
             classificationsLinkedList.removeNode(item, (v) => v.remove());
+            updateSavePath();
         });
 
         const removeChildren = document.createElement("div");
@@ -239,16 +302,24 @@ export async function modelDownloader(configData) {
         item.appendChild(removeChildren);
         removeChildren.addEventListener("click", () => {
            classificationsLinkedList.deleteFrom(item, (v) => v.remove());
+           updateSavePath();
         });
 
-        if (!lastNode){
+        if (!node){
             classifyContainer.appendChild(item);
             classificationsLinkedList.append(item);
             return;
         }
-        const insertAfter = (referenceNode, newNode) => referenceNode.parentNode.insertBefore(newNode, referenceNode.nextSibling);
-        insertAfter(lastNode, item);
-        classificationsLinkedList.insertAfter(lastNode, item);
+        if (arg === "after") {
+            const insertAfter = (referenceNode, newNode) => referenceNode.parentNode.insertBefore(newNode, referenceNode.nextSibling);
+            insertAfter(node, item);
+            classificationsLinkedList.insertAfter(node, item);
+            return;
+        }
+        if (arg === "before") {
+            classifyContainer.insertBefore(item, node);
+            classificationsLinkedList.insertBefore(node, item);
+        }
     }
 
     document.addEventListener("click", (event) => {
@@ -268,5 +339,96 @@ export async function modelDownloader(configData) {
 
     clearClassifyBtn.addEventListener("click", () => {
         classificationsLinkedList.clear((v) => v.remove());
+        updateSavePath();
+    });
+
+    savePathInput.addEventListener("input", () => {
+        if (!savePathInput.value.startsWith(modelPath)) {
+            savePathInput.value = preInputPath;
+            return;
+        }
+        clearTimeout(savePathInputTimeout);
+        savePathInputTimeout = setTimeout(() => {
+            let path = savePathInput.value.replace(modelPath, "");
+            const pathList = path.split("\\");
+            classificationsLinkedList.clear((v) => v.remove());
+            pathList.forEach(data => {
+                if (data) addCategory(null, data);
+            });
+        }, 500);
+        preInputPath = savePathInput.value;
+    });
+
+    savePathInput.addEventListener("blur", () => {
+        setTimeout(() => {
+            savePathInput.scrollLeft = savePathInput.scrollWidth;
+        }, 0);
+    });
+
+    chooseSavePathBtn.addEventListener("click", async () => {
+        const response = await api.fetchApi("/minitools/choose_save_path", {
+            method: "POST",
+            body: JSON.stringify({initialPath: savePathInput.value})
+        });
+        const data = await response.json();
+        if (data.save_path) savePathInput.value = data.save_path.replaceAll("/", "\\");
+
+        if (!savePathInput.value.startsWith(modelPath)) {
+            savePathInput.value = preInputPath;
+            return;
+        }
+
+        let path = savePathInput.value.replace(modelPath, "");
+        const pathList = path.split("\\");
+        classificationsLinkedList.clear((v) => v.remove());
+        pathList.forEach(data => {
+            if (data) addCategory(null, data);
+        });
+        preInputPath = savePathInput.value;
+
+        setTimeout(() => {
+            savePathInput.scrollLeft = savePathInput.scrollWidth;
+        }, 0);
+    });
+
+    function mapCivitaiToComfy(civitaiType) {
+        const TYPE_MAP = {
+            "checkpoint": "checkpoints",
+            "lora": "loras",
+            "locon": "loras",
+            "lycoris": "loras",
+            "textualinversion": "embeddings",
+            "controlnet": "controlnet",
+            "vae": "vae",
+            "hypernetwork": "hypernetworks",
+            "upscaler": "upscale_models",
+            "motionmodule": "animatediff_models",
+            "workflow": "configs"
+        };
+        const input = String(civitaiType || "").trim().toLowerCase();
+        return TYPE_MAP[input] || "others";
+    }
+
+    function loadAutoClassify(type, baseModel) {
+        const comfyType = mapCivitaiToComfy(type);
+        let firstNode = null;
+        if (!classificationsLinkedList.isEmpty()) firstNode = classificationsLinkedList.head.value;
+        addCategory(firstNode, comfyType,  "before");
+        addCategory(firstNode, baseModel, "before");
+        updateSavePath();
+    }
+
+    autoClassifyUpdateBtn.addEventListener("click", () => {
+        if (!downloadData) return;
+        const info = downloadData.model_info || {};
+        if (autoClassifyInput.checked) loadAutoClassify(info.type, info.base_model);
+    });
+
+    autoClassifyInput.addEventListener("change", () => {
+        if (autoClassifyInput.checked) {
+            autoClassifyUpdateBtn.classList.remove("disabled");
+        } else {
+            autoClassifyUpdateBtn.classList.add("disabled");
+        }
     });
 }

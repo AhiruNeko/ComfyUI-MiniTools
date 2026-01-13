@@ -1,7 +1,6 @@
 import os
 import folder_paths
 
-
 MODEL_DIR = os.path.abspath(folder_paths.models_dir)
 
 
@@ -13,6 +12,3 @@ def get_folders(*paths: str) -> list[str]:
         name for name in os.listdir(full_path)
         if os.path.isdir(os.path.join(full_path, name))
     ]
-
-if __name__ == "__main__":
-    print(get_folders(MODEL_DIR))

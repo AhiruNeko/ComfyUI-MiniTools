@@ -41,11 +41,15 @@
                 <span class="section-title">模型下载</span>
             </div>
             <div class="section-body">
-                <div class="container">
-                    <input type="text" id="download-url" class="input-box" autocomplete="off" placeholder="请输入下载地址">
+                <div class="container" style="flex-direction: column">
+                    <input type="text" id="download-url" class="input-box" autocomplete="off" placeholder="请输入下载链接">
+                    <div class="container" style="flex-direction: row">
+                        <input type="text" id="save-path-input" class="input-box" autocomplete="off" placeholder="请输入保存路径">
+                        <button class="button" id="choose-save-path-btn">浏览</button>
+                    </div>
                 </div>
                 <div class="container">
-                    <label for="preset-selections" id="preset-label">预设</label>
+                    <label for="preset-selections" id="preset-label" class="title-text">预设</label>
                     <select id="preset-selections" name="models" class="button">
                         <option value="civitai">Civitai</option>
                         <option value="default">默认</option>
@@ -82,11 +86,12 @@
                         </div>
                         <label class="title-text">模型分类(保存路径)</label>
                         <div style="display: flex; flex-direction: row; gap: 5px; height: 25px;">
-                            <button class="button" id="add-classify-btn">添加分类</button>
+                            <button class="button" id="add-classify-btn">添加</button>
                             <button class="button" id="clear-classify-btn">清空</button>
                             <div style="display: flex; align-items: center;" id="autoClassifyContainer">
-                                <input type="checkbox" id="autoClassifyInput" checked class="input-box" style="cursor: pointer">
-                                <label for="autoClassifyInput" class="main-text" style="cursor: pointer">自动分类</label>
+                                <input type="checkbox" id="auto-classify-input" checked class="input-box" style="cursor: pointer">
+                                <label for="auto-classify-input" class="main-text" style="cursor: pointer">自动分类</label>
+                                <div class="classify-btn" title="刷新自动分类" id="auto-classify-update-btn">⟳</div>
                             </div>
                         </div>
                         <div class="classify-container" id="classify-container">

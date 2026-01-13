@@ -5,13 +5,14 @@ from .utils import MODEL_DIR, get_folders
 from aiohttp import web
 import asyncio
 import json
-import win32gui, win32con
 import ctypes
 import uuid
 import sys
 import subprocess
 import importlib.util
 from .downloader_manager import DownloaderManager
+import tkinter as tk
+from tkinter import filedialog
 
 package_name = 'rapidfuzz'
 spec = importlib.util.find_spec(package_name)
@@ -65,37 +66,40 @@ async def get_init_config(request):
     config["src"] = default_path
     return web.json_response(config)
 
+@server.PromptServer.instance.routes.post("/minitools/save_src_config")
+async def save_src_config(request):
+    data = await request.json()
+    src = data.get("src", None)
+    if not (src is None):
+        edit_config("src", src)
+    return web.json_response(status=204)
+
 @server.PromptServer.instance.routes.get("/minitools/get_default_src")
 async def get_default_src(request):
-    try:
-        with open(os.path.join(CURRENT_DIR, "config.json"), "r") as file:
-            config = json.load(file)
-        config["src"] = DEFAULT_SRC_PATH
-        with open(os.path.join(CURRENT_DIR, "config.json"), "w") as file:
-            json.dump(config, file)
-    except Exception as exception:
-        print(traceback.format_exc())
-        print(exception)
+    edit_config("src", DEFAULT_SRC_PATH)
     return web.json_response({
         "src": DEFAULT_SRC_PATH
     })
 
 
-def ask_open_file_native():
+def ask_open_file_native(filter_str="所有文件 (*.*)\0*.*\0\0", initial_path=None):
     title = "选择搜索源"
-    filter_str = "表格文件 (*.csv)\0*.csv\0\0"
+    initial_dir = initial_path if initial_path and os.path.exists(initial_path) else os.getcwd()
+    root = tk.Tk()
+    root.withdraw()
+    filter_list = filter_str.split("\0")
+    filetypes = [(filter_list[i], filter_list[i + 1]) for i in range(0, len(filter_list) - 1, 2)]
     try:
-        file_path, _, _ = win32gui.GetOpenFileNameW(
-            InitialDir=os.getcwd(),
-            Flags=win32con.OFN_EXPLORER | win32con.OFN_FILEMUSTEXIST | win32con.OFN_HIDEREADONLY,
-            Title=title,
-            Filter=filter_str,
-            DefExt="csv"
+        file_path = filedialog.askopenfilename(
+            title=title,
+            initialdir=initial_dir,
+            filetypes=filetypes
         )
-        return file_path
     except Exception as exception:
         print(exception)
-        return ""
+        file_path = ""
+    root.destroy()
+    return file_path if file_path else ""
 
 def edit_config(key, val):
     try:
@@ -109,9 +113,12 @@ def edit_config(key, val):
         print(traceback.format_exc())
 
 
-@server.PromptServer.instance.routes.get("/minitools/get_local_path")
+@server.PromptServer.instance.routes.post("/minitools/get_local_path")
 async def get_local_path(request):
-    file_path = await asyncio.to_thread(ask_open_file_native)
+    data = await request.json()
+    initial_path = data.get("initialPath", "")
+    filter_config = "表格文件 (*.csv)\0*.csv\0\0"
+    file_path = await asyncio.to_thread(ask_open_file_native, filter_config, initial_path)
     if file_path:
         edit_config("src", file_path)
         return web.json_response({"src": os.path.abspath(file_path)})
@@ -167,3 +174,29 @@ async def get_classifications(request):
     data = await request.json()
     path = data.get("path", utils.MODEL_DIR)
     return web.json_response({"folders": get_folders(MODEL_DIR, *path)})
+
+@server.PromptServer.instance.routes.get("/minitools/get_model_path")
+async def get_model_path(request):
+    return web.json_response({"model_path": MODEL_DIR})
+
+def ask_save_folder(initial_path=None):
+    initial_dir = initial_path if initial_path and os.path.exists(initial_path) else MODEL_DIR
+    root = tk.Tk()
+    root.withdraw()
+    path = filedialog.askdirectory(
+        title="选择保存路径",
+        initialdir=initial_dir,
+        mustexist=False
+    )
+    root.destroy()
+    return path or ""
+
+@server.PromptServer.instance.routes.post("/minitools/choose_save_path")
+async def choose_save_path(request):
+    data = await request.json()
+    initial_path = data.get("initialPath", MODEL_DIR)
+    file_path = await asyncio.to_thread(ask_save_folder, initial_path)
+    if file_path:
+        return web.json_response({"save_path": file_path})
+    else:
+        return web.json_response({"save_path": ""})
